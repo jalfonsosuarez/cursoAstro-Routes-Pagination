@@ -5,6 +5,7 @@ import type { PokemonListResponse } from "@interfaces/pokemon-list.response";
 import MainLayout from "@layouts/MainLayout.astro";
 import PokemonCard from "@components/pokemons/PokemonCard.astro";
 import Title from "@components/shared/Title.astro";
+import { Icon } from "astro-icon/components";
 
 export const getStaticPaths = (async () => {
   const resp = await fetch("https://pokeapi.co/api/v2/pokemon?limit=151");
@@ -29,11 +30,18 @@ const imageSrc = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprit
   image={imageSrc}
 >
   <section class="mt-10 mx-10 flex flex-col justify-center items-center">
-    <div>
-      <button onclick="window.history.back()" class="text-blue-500"
-        >Regresar</button
-      >
-      <Title>{name}</Title>
+    <div class="flex flex-row">
+      <div>
+        <button onclick="window.history.back()" class="text-blue-500"
+          >Regresar</button
+        >
+        <Title>{name}</Title>
+      </div>
+
+      <button id="btn-favorite" class="ml-4" data-name={name} data-id={id}>
+        <Icon data-outline name="heart-outline" size={50} />
+        <Icon data-full class="hidden" name="heart-full" size={50} />
+      </button>
     </div>
 
     <PokemonCard name={name} url={url} isBig />
@@ -44,8 +52,65 @@ const imageSrc = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprit
   </section>
 </MainLayout>
 
+<script>
+  interface FavoritePokemon {
+    name: string;
+    id: number;
+  }
+
+  const handlePageLoad = () => {
+    let favoritePokemons: FavoritePokemon[] = JSON.parse(
+      localStorage.getItem("favorites") ?? "[]"
+    );
+
+    const btnFavorite = document.querySelector(
+      "#btn-favorite"
+    ) as HTMLButtonElement;
+
+    if (!btnFavorite) return;
+
+    const name = btnFavorite.dataset.name ?? "";
+    const id = btnFavorite.dataset.id ?? "";
+
+    const heartOutline = btnFavorite.querySelector(
+      "[data-outline]"
+    ) as HTMLElement;
+    const heartFull = btnFavorite.querySelector("[data-full]") as HTMLElement;
+
+    const toggleFavorite = () => {
+      const isFavorite = favoritePokemons.some((fav) => fav.name === name);
+      if (isFavorite) {
+        // Eliminarlo
+        favoritePokemons = favoritePokemons.filter((fav) => fav.name !== name);
+      } else {
+        // Añadirlo
+        favoritePokemons.push({
+          id: +id,
+          name: name,
+        });
+      }
+
+      localStorage.setItem("favorites", JSON.stringify(favoritePokemons));
+    };
+
+    btnFavorite.addEventListener("click", () => {
+      heartOutline.classList.toggle("hidden");
+      heartFull.classList.toggle("hidden");
+
+      toggleFavorite();
+    });
+  };
+
+  document.addEventListener("astro:page-load", () => {
+    handlePageLoad();
+  });
+</script>
+
 <style>
   a {
     @apply hover:underline text-blue-500;
+  }
+  #btn-favorite {
+    @apply hover:animate-pulse;
   }
 </style>
